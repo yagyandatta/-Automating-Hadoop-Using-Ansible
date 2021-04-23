@@ -1,0 +1,139 @@
+- name: "configuring NameNode"
+  hosts: name
+  vars_files:
+  - namenode-vars.yml
+  tasks:
+    - name: "Copy jdk to name node"
+      copy:
+        src: "{{ jdk }}"
+        dest: "/root/"
+   
+    - name: "Copy hadoop to name node"
+      copy:
+        src: "{{ hadoop }}"
+        dest: "/root/"
+    - name: "Installing JDK"
+      shell: "rpm -ivh {{ jdk }}"
+      register: Java
+      ignore_errors: yes
+    - name: "Jdk Installation"
+      debug:
+        var: Java.stdout
+    - name: "Installing Hadoop"
+      shell: "rpm -ivh {{ hadoop }}  --force"
+      register: Hadoop
+      ignore_errors: yes
+    - name: "Hadop Installation"
+      debug:
+          var: Hadoop.stdout
+
+    - name: "Disabling Firewall"
+      shell: "systemctl stop firewalld"
+      ignore_errors: True
+    - name: "Put SELinux in permissive mode"
+      selinux:
+        policy: targeted
+        state: permissive
+
+    - name: "creating a directory for namenode"
+      file:
+        name: "{{ directory_path }}"
+        state: directory
+    - name: "Configuring hdfs-site file"
+      blockinfile:
+        path: "{{ hdfs_path }}"
+        insertafter: "<configuration>"
+        block: |
+          <property>
+          <name>dfs.name.dir</name>
+          <value>{{ directory_path }}</value>
+          </property>
+    - name: "Configuring core-site file"
+      blockinfile:
+        path: "{{ core_path }}"
+        insertafter: "<configuration>"
+        block: |
+          <property>
+          <name>fs.default.name</name>
+          <value>hdfs://{{ ansible_facts['default_ipv4']['address'] }}:9001</value>
+          </property>
+    - name: "format namenode directory"
+      shell: "hadoop namenode -format -force -nonInteractive"
+    - name: Starting Namenode
+      shell: "hadoop-daemon.sh start namenode"
+    - name: NameNode
+      shell: "jps"
+
+- name: "configuring DataNode"
+  hosts: data
+  vars_files:
+  - namenode-vars.yml
+  vars_prompt:
+  - name: master_ip
+    prompt: "Enter the IP Address of Master Node:"
+    private: no
+  tasks:
+    - name: "Copy jdk to name node"
+      copy:
+        src: "{{ jdk }}"
+        dest: "/root/"
+    - name: "Copy hadoop to name node"
+      copy:
+        src: "{{ hadoop }}"
+        dest: "/root/"
+
+    - name: "Installing JDK"
+      shell: "rpm -ivh {{ jdk }}"
+      register: Java
+      ignore_errors: yes
+    - name: "Jdk Installation"
+      debug:
+        var: Java.stdout
+
+    - name: "Installing Hadoop"
+      shell: "rpm -ivh {{ hadoop }}  --force"
+      register: Hadoop
+      ignore_errors: yes
+    - name: "Hadop Installation"
+      debug:
+          var: Hadoop.stdout
+
+    - name: "Disabling Firewall"
+      shell: "systemctl stop firewalld"
+      ignore_errors: True
+    - name: "Put SELinux in permissive mode"
+      selinux:
+        policy: targeted
+        state: permissive
+
+    - name: "creating a directory for datanode"
+      file:
+        name: "{{ directory_path }}"
+        state: directory
+    - name: "Configuring hdfs-site file"
+      blockinfile:
+        path: "{{ hdfs_path }}"
+        insertafter: "<configuration>"
+        block: |
+          <property>
+          <name>dfs.data.dir</name>
+          <value>{{ directory_path }}</value>
+          </property>
+    - name: "Configuring core-site file"
+      blockinfile:
+        path: "{{ core_path }}"
+        insertafter: "<configuration>"
+        block: |
+          <property>
+          <name>fs.default.name</name>
+          <value>hdfs://{{ master_ip }}:9001</value>
+          </property>
+    - name: "Starting datanode"
+      shell: "hadoop-daemon.sh start datanode"
+    - name: "Stopping datanode"
+      shell: "hadoop-daemon.sh stop datanode"
+    - name: "Starting datanode"
+      shell: "hadoop-daemon.sh start datanode"
+    - name: NameNode
+      shell: "jps"
+
