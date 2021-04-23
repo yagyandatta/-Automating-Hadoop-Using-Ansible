@@ -73,11 +73,11 @@
     prompt: "Enter the IP Address of Master Node:"
     private: no
   tasks:
-    - name: "Copy jdk to name node"
+    - name: "Copy jdk to data-node"
       copy:
         src: "{{ jdk }}"
         dest: "/root/"
-    - name: "Copy hadoop to name node"
+    - name: "Copy hadoop to data-node"
       copy:
         src: "{{ hadoop }}"
         dest: "/root/"
@@ -130,10 +130,6 @@
           </property>
     - name: "Starting datanode"
       shell: "hadoop-daemon.sh start datanode"
-    - name: "Stopping datanode"
-      shell: "hadoop-daemon.sh stop datanode"
-    - name: "Starting datanode"
-      shell: "hadoop-daemon.sh start datanode"
-    - name: NameNode
+    - name: DataNode
       shell: "jps"
 
